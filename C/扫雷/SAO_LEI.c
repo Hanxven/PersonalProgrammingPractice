@@ -46,6 +46,10 @@ int size_ln = 12, size_col = 15;//定义了地图大小，范围最大48*48(预�
 HANDLE handle;//存储窗口句柄
 int mine = 15;//地图的雷
 int flag;
+char highlight[8][2];
+int hsize;
+int highlightFlags;
+int debug;
 
 void printMap(int, int, int);
 void movepos(int ,int);
@@ -69,19 +73,19 @@ int main(int argc, char* argv[])
     }
 
     printf("************************************************\n");
-    printf("#          游戏规则: WSAD控制上下左右,         #\n");
-    printf("#          游戏规则: WSAD控制上下左右,         #\n");
-    printf("#          R为打开当前格子，F为立Flag,         #\n");
-    printf("#                  C为翻格子.                  #\n");
+    printf("#                WSAD control                  #\n");
+    printf("#          R: Turn this block over             #\n");
+    printf("#               C: Batch open                  #\n");
+    printf("#                 Q: Quit                      #\n");
 
     if(argc != 4)
     {
-        printf("#              支持命令行参数，如：            #\n");
-        printf("#              saolei.exe 15 13 12             #\n");
-        printf("#              表示15个雷,高13宽12             #\n");
+        printf("#       Command line arguments supported       #\n");
+        printf("#        e.g. minesweeper.exe 15 13 12         #\n");
+        printf("#     15 mines, 13 in height, 12 in width      #\n");
     }
 
-    printf("#                 任意键，继续.                #\n");
+    printf("#          Press any key to continue.          #\n");
     printf("************************************************\n");
     getch();
     system("cls");
@@ -90,114 +94,144 @@ int main(int argc, char* argv[])
 
     //初始化
     handle = GetStdHandle(STD_OUTPUT_HANDLE);
-    int cur_posX = 0, cur_posY = 0;
+    int cur_posX, cur_posY;
     char ch;
     hidecursor();
-    flag = mine;
-    setmap(mine);
-    printMap(cur_posX, cur_posY, 0);
-    int failed = 0;
-
+    int failed;
 
     while(1)
     {
+        if(argc!=4)
+        {
+            srand((unsigned)time(NULL));
+            size_ln = rand() % 6 + 12;
+            size_col = rand() % 6 + 12;
+            mine = 0.12 * size_ln * size_col;
+        }
+        cur_posX = 0;
+        cur_posY = 0;
+        flag = mine;
+        setmap(mine);
+        printMap(cur_posX, cur_posY, 0);
+        failed = 0;
+
         while(1)
         {
-            ch = getch();
-            switch(ch)
+            while(1)
             {
-            case 'w':
-            case 'W':
-                if(cur_posY >= 1)
-                    cur_posY--;
-                else
-                    continue;
-                goto print;
-            case 'a':
-            case 'A':
-                if(cur_posX >= 1)
-                    cur_posX--;
-                else
-                    continue;
-                goto print;
-            case 's':
-            case 'S':
-                if(cur_posY < size_ln - 1)
-                    cur_posY++;
-                else
-                    continue;
-                goto print;
-            case 'd':
-            case 'D':
-                if(cur_posX < size_col - 1)
-                    cur_posX++;
-                else
-                    continue;
-                goto print;
-            case 'r':
-            case 'R':
-                if(!map[cur_posY + 1][cur_posX + 1].isVisible && !map[cur_posY + 1][cur_posX + 1].flag)
+                ch = getch();
+                switch(ch)
                 {
-                    if(map[cur_posY + 1][cur_posX + 1].data == 'M')
-                    {
-                        failed = 1;
-                        goto print;
-                    }
-                    else if(map[cur_posY + 1][cur_posX + 1].data == 0)
-                        reveal(cur_posY + 1, cur_posX + 1);
+                case 'w':
+                case 'W':
+                    if(cur_posY >= 1)
+                        cur_posY--;
                     else
-                        map[cur_posY + 1][cur_posX + 1].isVisible = 1;
-                }
-                goto print;
-            case 'f':
-            case 'F':
-                if(!map[cur_posY + 1][cur_posX + 1].isVisible)
-                {
-                    if(map[cur_posY + 1][cur_posX + 1].flag)
-                    {
-                        map[cur_posY + 1][cur_posX + 1].flag = 0;
-                        flag++;
-                    }
+                        continue;
+                    goto print;
+                case 'a':
+                case 'A':
+                    if(cur_posX >= 1)
+                        cur_posX--;
                     else
+                        continue;
+                    goto print;
+                case 's':
+                case 'S':
+                    if(cur_posY < size_ln - 1)
+                        cur_posY++;
+                    else
+                        continue;
+                    goto print;
+                case 'd':
+                case 'D':
+                    if(cur_posX < size_col - 1)
+                        cur_posX++;
+                    else
+                        continue;
+                    goto print;
+                case 'r':
+                case 'R':
+                    if(!map[cur_posY + 1][cur_posX + 1].isVisible && !map[cur_posY + 1][cur_posX + 1].flag)
                     {
-                        if(flag)
+                        if(map[cur_posY + 1][cur_posX + 1].data == 'M')
                         {
-                            map[cur_posY + 1][cur_posX + 1].flag = 1;
-                            flag--;
+                            failed = 1;
+                            goto print;
+                        }
+                        else if(map[cur_posY + 1][cur_posX + 1].data == 0)
+                            reveal(cur_posY + 1, cur_posX + 1);
+                        else
+                            map[cur_posY + 1][cur_posX + 1].isVisible = 1;
+                    }
+                    goto print;
+                case 'f':
+                case 'F':
+                    if(!map[cur_posY + 1][cur_posX + 1].isVisible)
+                    {
+                        if(map[cur_posY + 1][cur_posX + 1].flag)
+                        {
+                            map[cur_posY + 1][cur_posX + 1].flag = 0;
+                            flag++;
+                        }
+                        else
+                        {
+                            if(flag)
+                            {
+                                map[cur_posY + 1][cur_posX + 1].flag = 1;
+                                flag--;
+                            }
                         }
                     }
+                    goto print;
+                case 'c':
+                case 'C':
+                    if(map[cur_posY + 1][cur_posX + 1].data >= 1 && map[cur_posY + 1][cur_posX + 1].data <= 8 && map[cur_posY + 1][cur_posX + 1].isVisible && !map[cur_posY + 1][cur_posX + 1].flag)
+                    {
+                        if(tryit(cur_posY + 1, cur_posX + 1, map[cur_posY + 1][cur_posX + 1].data))
+                            failed = 1;
+                    }
+                    goto print;
+                case 'Q':
+                case 'q':
+                    goto end;
+                case 'h':
+                case 'H':
+                    justJoke();
+                    break;
+                case 'Z':
+                case 'z':
+                    if(debug)
+                        debug = 0;
+                    else
+                        debug = 1;
+                    goto print;
+                default:
+                    continue;
                 }
-                goto print;
-            case 'c':
-            case 'C':
-                if(map[cur_posY + 1][cur_posX + 1].data >= 1 && map[cur_posY + 1][cur_posX + 1].data <= 8 && map[cur_posY + 1][cur_posX + 1].isVisible && !map[cur_posY + 1][cur_posX + 1].flag)
-                {
-                    if(tryit(cur_posY + 1, cur_posX + 1, map[cur_posY + 1][cur_posX + 1].data))
-                        failed = 1;
-                }
-                goto print;
-            default:
-                continue;
             }
-        }
 
-    print:
+        print:
 
-        if(failed)
-        {
-            printMap(cur_posX, cur_posY, -1);
-            break;
+            if(failed)
+            {
+                printMap(cur_posX, cur_posY, -1);
+                break;
+            }
+            if(win())
+            {
+                printMap(cur_posX, cur_posY, 1);
+                break;
+            }
+            printMap(cur_posX, cur_posY, 0);
         }
-        if(win())
-        {
-            printMap(cur_posX, cur_posY, 1);
-            break;
-        }
-        printMap(cur_posX, cur_posY, 0);
+        getch();
+        system("cls");
     }
 
-
-    getch();
+end:
+    movepos(0, size_ln + 1);
+    printf("Game exit.");
     return 0;
 
 }
@@ -220,18 +254,17 @@ void printMap(int cur_posX, int cur_posY, int status)
     if(status == 1)
     {
         movepos(0, size_ln + 1);
-        printf("You WIN. GOOD! [^_^]");
+        printf("You WIN. GOOD! [:)]");
         revealall(1);
     }
     else if(status == -1)
     {
         movepos(0, size_ln + 1);
-        printf("You LOST, FW. [*_*]");
+        printf("You LOST. [:(]");
         revealall(0);
     }
 
     int ln, col;
-    cur_posX *= 3;
     movepos(0, 0);
     for(ln = 1; ln <= size_ln; ln++)
     {
@@ -302,15 +335,40 @@ void printMap(int cur_posX, int cur_posY, int status)
         }
         putchar('\n');
     }
-    printf("[Flag(s) remain:%3d]  [X:%3d|Y:%3d]", flag, cur_posX / 3, cur_posY);
-
+    printf("[Flag(s) remain:%3d]", flag);
+    int cur;
+    if(debug)
+    {
+        if(map[cur_posY + 1][cur_posX + 1].data == 0)
+            printf(" Blank");
+        else if(map[cur_posY + 1][cur_posX + 1].data == 'M')
+            printf(" Mine ");
+        else
+            printf(" %-5d", map[cur_posY + 1][cur_posX + 1].data);
+    }
+    else
+        printf("      ");
+    if(map[cur_posY + 1][cur_posX + 1].data == hsize + highlightFlags)
+        setcolor(0, 11);
+    else
+        setcolor(0, 7);
+    for(cur = 0; cur < hsize; cur++)
+    {
+        ln = highlight[cur][0];
+        col = highlight[cur][1];
+        movepos((col - 1) * 3, ln - 1);
+        putchar('[');
+        putchar('?');
+        putchar(']');
+    }
+    hsize = 0;
+    cur_posX *= 3;
     setcolor(15, 13);
     movepos(cur_posX, cur_posY);
     putchar('[');
     movepos(cur_posX + 2, cur_posY);
     putchar(']');
     setcolor(7, 0);
-
     if(status)
         movepos(0, size_ln + 2);
 }
@@ -378,6 +436,9 @@ void initmap()
             map[ln][col].flag = 0;
         }
     }
+    hsize = 0;
+    highlightFlags = 0;
+    debug = 0;
 }
 
 
@@ -542,6 +603,8 @@ void revealall(int win)
  *                               *
  *    翻牌函数，对应扫雷的左     *
  *    右键一块按的功能。         *
+ *    本函数还会记录周围的方     *
+ *    块，在按C键时,高亮显示     *
  *                               *
  *-------------------------------*/
 
@@ -549,7 +612,6 @@ int tryit(int posX, int posY, char data)
 {
     //八个方向单独考虑
     int flags = 0;
-    int havemine = 0;
     if(map[posX-1][posY-1].flag)
         flags++;
     if(map[posX][posY-1].flag)
@@ -566,13 +628,56 @@ int tryit(int posX, int posY, char data)
         flags++;
     if(map[posX+1][posY+1].flag)
         flags++;
+    highlightFlags = flags;
+    //判定高亮区块
+    if(posX - 1 && posY - 1 && posX - 1 != size_ln + 1 && posY - 1 != size_col + 1 && !map[posX-1][posY-1].flag && !map[posX-1][posY-1].isVisible)
+    {
+        highlight[hsize][0] = posX - 1;
+        highlight[hsize++][1] = posY - 1;
+    }
+    if(posX && posY - 1 && posX != size_ln + 1 && posY - 1 != size_col + 1 && !map[posX][posY-1].flag && !map[posX][posY-1].isVisible)
+    {
+        highlight[hsize][0] = posX;
+        highlight[hsize++][1] = posY - 1;
+    }
+    if(posX + 1 && posY - 1 && posX + 1 != size_ln + 1 && posY - 1 != size_col + 1 && !map[posX+1][posY-1].flag && !map[posX+1][posY-1].isVisible)
+    {
+        highlight[hsize][0] = posX + 1;
+        highlight[hsize++][1] = posY - 1;
+    }
+    if(posX - 1 && posY && posX - 1 != size_ln + 1 && posY != size_col + 1 && !map[posX-1][posY].flag && !map[posX-1][posY].isVisible)
+    {
+        highlight[hsize][0] = posX - 1;
+        highlight[hsize++][1] = posY;
+    }
+    if(posX + 1 && posY && posX + 1 != size_ln + 1 && posY != size_col + 1 && !map[posX+1][posY].flag && !map[posX+1][posY].isVisible)
+    {
+        highlight[hsize][0] = posX + 1;
+        highlight[hsize++][1] = posY;
+    }
+    if(posX - 1 && posY + 1 && posX - 1 != size_ln + 1 && posY + 1 != size_col + 1 && !map[posX-1][posY+1].flag && !map[posX-1][posY+1].isVisible)
+    {
+        highlight[hsize][0] = posX - 1;
+        highlight[hsize++][1] = posY + 1;
+    }
+    if(posX && posY + 1 && posX != size_ln + 1 && posY + 1 != size_col + 1 && !map[posX][posY+1].flag && !map[posX][posY+1].isVisible)
+    {
+        highlight[hsize][0] = posX;
+        highlight[hsize++][1] = posY + 1;
+    }
+    if(posX + 1 && posY + 1 && posX + 1 != size_ln + 1 && posY + 1 != size_col + 1 && !map[posX+1][posY+1].flag && !map[posX+1][posY+1].isVisible)
+    {
+        highlight[hsize][0] = posX + 1;
+        highlight[hsize++][1] = posY + 1;
+    }
     //8个方向都要考虑，NM炸了哦
     if(data <= flags)
     {
+        hsize = 0;
         if(!map[posX-1][posY-1].isVisible && !map[posX-1][posY-1].flag)
         {
             if(map[posX-1][posY-1].data == 'M')
-                havemine = 1;
+                return 1;
             if(map[posX-1][posY-1].data == 0)
                 reveal(posX - 1, posY - 1);
             map[posX-1][posY-1].isVisible = 1;
@@ -580,7 +685,7 @@ int tryit(int posX, int posY, char data)
         if(!map[posX][posY-1].isVisible && !map[posX][posY-1].flag)
         {
             if(map[posX][posY-1].data == 'M')
-                havemine = 1;
+                return 1;
             if(map[posX][posY-1].data == 0)
                 reveal(posX, posY - 1);
             map[posX][posY-1].isVisible = 1;
@@ -588,7 +693,7 @@ int tryit(int posX, int posY, char data)
         if(!map[posX+1][posY-1].isVisible && !map[posX+1][posY-1].flag)
         {
             if(map[posX+1][posY-1].data == 'M')
-                havemine = 1;
+                return 1;
             if(map[posX+1][posY-1].data == 0)
                 reveal(posX + 1, posY + 1);
             map[posX+1][posY-1].isVisible = 1;
@@ -596,7 +701,7 @@ int tryit(int posX, int posY, char data)
         if(!map[posX-1][posY].isVisible && !map[posX-1][posY].flag)
         {
             if(map[posX-1][posY].data == 'M')
-                havemine = 1;
+                return 1;
             if(map[posX-1][posY].data == 0)
                 reveal(posX - 1, posY);
             map[posX-1][posY].isVisible = 1;
@@ -604,7 +709,7 @@ int tryit(int posX, int posY, char data)
         if(!map[posX+1][posY].isVisible && !map[posX+1][posY].flag)
         {
             if(map[posX+1][posY].data == 'M')
-                havemine = 1;
+                return 1;
             if(map[posX+1][posY].data == 0)
                 reveal(posX + 1, posY);
             map[posX+1][posY].isVisible = 1;
@@ -612,7 +717,7 @@ int tryit(int posX, int posY, char data)
         if(!map[posX-1][posY+1].isVisible && !map[posX-1][posY+1].flag)
         {
             if(map[posX-1][posY+1].data == 'M')
-                havemine = 1;
+                return 1;
             if(map[posX-1][posY+1].data == 0)
                 reveal(posX - 1, posY + 1);
             map[posX-1][posY+1].isVisible = 1;
@@ -620,7 +725,7 @@ int tryit(int posX, int posY, char data)
         if(!map[posX][posY+1].isVisible && !map[posX][posY+1].flag)
         {
             if(map[posX][posY+1].data == 'M')
-                havemine = 1;
+                return 1;
             if(map[posX][posY+1].data == 0)
                 reveal(posX, posY + 1);
             map[posX][posY+1].isVisible = 1;
@@ -628,14 +733,11 @@ int tryit(int posX, int posY, char data)
         if(!map[posX+1][posY+1].isVisible && !map[posX+1][posY+1].flag)
         {
             if(map[posX+1][posY+1].data == 'M')
-                havemine = 1;
+                return 1;
             if(map[posX+1][posY+1].data == 0)
                 reveal(posX + 1, posY + 1);
             map[posX+1][posY+1].isVisible = 1;
         }
-        if(havemine)
-            return 1;
-        else
             return 0;
     }
     return 0;
@@ -650,5 +752,5 @@ int tryit(int posX, int posY, char data)
  *-------------------------------*/
 void justJoke()
 {
-    printf("你好，这里是HanxvenMarvels！\n");
+    printf("HanxvenMarvels!\n");
 }
